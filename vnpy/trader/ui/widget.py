@@ -484,18 +484,53 @@ class AccountMonitor(BaseMonitor):
     }
 
 
+class PasswordDialog(QtWidgets.QDialog):
+    """
+    Enter password before connect a certain gateway.
+    """
+
+    def __init__(self, main_engine: MainEngine, gateway_name: str):
+        """"""
+        super(PasswordDialog, self).__init__()
+
+        self.main_engine = main_engine
+        self.gateway_name = gateway_name
+        self.widget = None
+        self.init_ui()
+
+    def init_ui(self):
+        """"""
+        self.setWindowTitle(f"请输入{self.gateway_name}配置文件密码")
+
+        form = QtWidgets.QFormLayout()
+        widget = QtWidgets.QLineEdit()
+        form.addRow("密码", widget)
+        button = QtWidgets.QPushButton("确定")
+        button.clicked.connect(self.connect)
+        form.addRow(button)
+        self.widget = widget
+
+        self.setLayout(form)
+    
+    def connect(self):
+        dialog = ConnectDialog(self.main_engine, self.gateway_name, self.widget.text())
+        dialog.exec_()
+        self.accept()
+
+
 class ConnectDialog(QtWidgets.QDialog):
     """
     Start connection of a certain gateway.
     """
 
-    def __init__(self, main_engine: MainEngine, gateway_name: str):
+    def __init__(self, main_engine: MainEngine, gateway_name: str, password: str = None):
         """"""
         super(ConnectDialog, self).__init__()
 
         self.main_engine = main_engine
         self.gateway_name = gateway_name
         self.filename = f"connect_{gateway_name.lower()}.json"
+        self.password = password
 
         self.widgets = {}
 
@@ -510,7 +545,7 @@ class ConnectDialog(QtWidgets.QDialog):
             self.gateway_name)
 
         # Saved setting provides field data used last time.
-        loaded_setting = load_json(self.filename)
+        loaded_setting = load_json(self.filename, self.password)
 
         # Initialize line edits and form layout based on setting.
         form = QtWidgets.QFormLayout()
@@ -555,7 +590,7 @@ class ConnectDialog(QtWidgets.QDialog):
                 field_value = field_type(widget.text())
             setting[field_name] = field_value
 
-        save_json(self.filename, setting)
+        save_json(self.filename, setting, self.password)
 
         self.main_engine.connect(setting, self.gateway_name)
 

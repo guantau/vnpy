@@ -18,6 +18,7 @@ from .widget import (
     AccountMonitor,
     LogMonitor,
     ActiveOrderMonitor,
+    PasswordDialog,
     ConnectDialog,
     ContractManager,
     TradingWidget,
@@ -227,9 +228,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         Open connect dialog for gateway connection.
         """
-        dialog = self.connect_dialogs.get(gateway_name, None)
-        if not dialog:
-            dialog = ConnectDialog(self.main_engine, gateway_name)
+        dialog = PasswordDialog(self.main_engine, gateway_name)
 
         dialog.exec_()
 
