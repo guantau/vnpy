@@ -6,6 +6,13 @@ import json
 from pathlib import Path
 from typing import Callable
 
+import base64
+import os
+from cryptography.fernet import Fernet
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
 import numpy as np
 import talib
 
@@ -80,7 +87,39 @@ def get_icon_path(filepath: str, ico_name: str):
     return str(icon_path)
 
 
-def load_json(filename: str):
+def encrypt(text: str, password: str):
+    salt = os.urandom(16)
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=100000,
+        backend=default_backend()
+    )
+    key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
+    f = Fernet(key)
+    cipher = f.encrypt(text.encode())
+    return {
+        'cipher': base64.urlsafe_b64encode(cipher).decode(),
+        'salt': base64.urlsafe_b64encode(salt).decode()
+    }
+
+
+def decrypt(cipher: str, salt: str, password: str):
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=base64.urlsafe_b64decode(salt.encode()),
+        iterations=100000,
+        backend=default_backend()
+    )
+    key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
+    f = Fernet(key)
+    text = f.decrypt(base64.urlsafe_b64decode(cipher.encode()))
+    return text.decode()
+
+
+def load_json(filename: str, password: str = None):
     """
     Load data from json file in temp path.
     """
@@ -89,18 +128,30 @@ def load_json(filename: str):
     if filepath.exists():
         with open(filepath, mode="r", encoding="UTF-8") as f:
             data = json.load(f)
-        return data
+        if 'cipher' in data and 'salt' in data:
+            if password:
+                try:
+                    text = decrypt(data['cipher'], data['salt'], password)
+                    return json.loads(text)
+                except:
+                    return {}
+            else:
+                return {}
+        else:
+            return data
     else:
         save_json(filename, {})
         return {}
 
 
-def save_json(filename: str, data: dict):
+def save_json(filename: str, data: dict, password: str = None):
     """
     Save data into json file in temp path.
     """
     filepath = get_file_path(filename)
     with open(filepath, mode="w+", encoding="UTF-8") as f:
+        if password:
+            data = encrypt(json.dumps(data), password)
         json.dump(
             data,
             f,
