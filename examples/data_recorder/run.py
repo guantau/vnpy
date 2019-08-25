@@ -67,6 +67,12 @@ def connect_gateways(main_engine, passwd):
         main_engine.connect(setting, gateway_name)
         main_engine.write_log(f"连接{gateway_name}接口")
 
+def query_contracts(main_engine):
+    gateway_names = main_engine.get_all_gateway_names()
+    for gateway_name in gateway_names:
+        gateway = main_engine.get_gateway(gateway_name)
+        gateway.query_contract()
+
 
 if __name__ == "__main__":
     print('Start data recorder engine...')
@@ -77,4 +83,4 @@ if __name__ == "__main__":
 
     sleep(10)
     recorder_engine = main_engine.add_app(DataRecorderApp)
-
+    query_contracts(main_engine)
