@@ -54,7 +54,7 @@ def init_engine():
 
     return main_engine
 
-def connect_gateways(main_engine, passwd):
+def connect_gateways(main_engine, passwd=None):
     gateway_names = main_engine.get_all_gateway_names()
     for gateway_name in gateway_names:
         filename = f"connect_{gateway_name.lower()}.json"
@@ -67,20 +67,23 @@ def connect_gateways(main_engine, passwd):
         main_engine.connect(setting, gateway_name)
         main_engine.write_log(f"连接{gateway_name}接口")
 
-def query_contracts(main_engine):
-    gateway_names = main_engine.get_all_gateway_names()
-    for gateway_name in gateway_names:
-        gateway = main_engine.get_gateway(gateway_name)
-        gateway.query_contract()
+def subscribe(recorder_engine):
+    vt_symbols = recorder_engine.tick_recordings.copy()
+    vt_symbols.update(recorder_engine.bar_recordings)
+    for vt_symbol in vt_symbols:
+        contract = recorder_engine.main_engine.get_contract(vt_symbol)
+        if contract:
+            recorder_engine.write_log(f"订阅：{vt_symbol}")
+            recorder_engine.subscribe(contract)
 
 
 if __name__ == "__main__":
-    print('Start data recorder engine...')
-    passwd = getpass.getpass('Please enter the config file password: ')
+    # print('Start data recorder engine...')
+    # passwd = getpass.getpass('Please enter the config file password: ')
 
     main_engine = init_engine()
     connect_gateways(main_engine, passwd)
 
     sleep(10)
     recorder_engine = main_engine.add_app(DataRecorderApp)
-    query_contracts(main_engine)
+    subscribe(recorder_engine)
