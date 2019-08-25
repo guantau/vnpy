@@ -45,8 +45,6 @@ def init_engine():
     main_engine.add_gateway(OkexfGateway)
     main_engine.add_gateway(BinanceGateway)
 
-    recorder_engine = main_engine.add_app(DataRecorderApp)
-
     main_engine.write_log("主引擎创建成功")
 
     log_engine = main_engine.get_engine("log")
@@ -54,7 +52,7 @@ def init_engine():
     event_engine.register(EVENT_RECORDER_UPDATE, process_update_event)
     main_engine.write_log("注册日志事件监听")
 
-    return recorder_engine
+    return main_engine
 
 def connect_gateways(main_engine, passwd):
     gateway_names = main_engine.get_all_gateway_names()
@@ -74,6 +72,9 @@ if __name__ == "__main__":
     print('Start data recorder engine...')
     passwd = getpass.getpass('Please enter the config file password: ')
 
-    recorder_engine = init_engine()
-    connect_gateways(recorder_engine.main_engine, passwd)
+    main_engine = init_engine()
+    connect_gateways(main_engine, passwd)
+
+    sleep(10)
+    recorder_engine = main_engine.add_app(DataRecorderApp)
 
